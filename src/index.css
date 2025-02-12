@@ -1,0 +1,25 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+:root {
+  height: 100vh;
+  width: 100vw;
+
+  .main-body {
+    padding: 8px;
+  }
+
+  .label-img {
+    position: absolute;
+    z-index: 2000;
+    /* left: 20%;
+    top: 20%; */
+    svg {
+      fill: inherit;
+    }
+  }
+
+  .background-img {
+    position: relative;
+    width: 100%;
+  }
+}
