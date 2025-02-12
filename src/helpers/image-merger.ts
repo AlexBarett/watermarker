@@ -11,7 +11,7 @@ export interface ImageMerger {
 
 export function imageMerger(images: ImageMerger[]): string[] {
   
-  const results = images.map(imgSettings => {
+  const results = images.map((imgSettings, i) => {
     const canvas = document.createElement('canvas');
 
     const ctx = canvas.getContext('2d');
@@ -27,10 +27,20 @@ export function imageMerger(images: ImageMerger[]): string[] {
     ctx!.globalAlpha = imgSettings.opacity;
 
     const label = new Image();
-    label.src = window.URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(label)], { type: 'image/svg+xml' }));
-    label.onload = 
-    () => ctx?.drawImage(label, imgSettings.left, imgSettings.top);
+    console.warn('PRE LOAD', new Blob([imgSettings.label], { type: 'image/svg+xml' }))
+    label.onload = () => {
+      console.warn('ON LOAD')
+      ctx?.drawImage(label, imgSettings.left, imgSettings.top);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('jpg');
+      a.target = '_self';
+      a.download = `test_${i}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
 
+    label.src = window.URL.createObjectURL(new Blob([imgSettings.label], { type: 'image/svg+xml' }));
     
     return canvas.toDataURL('jpg');
 
@@ -38,3 +48,8 @@ export function imageMerger(images: ImageMerger[]): string[] {
 
   return results;
 }
+
+// label.src = window.URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(label)], { type: 'image/svg+xml' }));
+// label.onload = 
+// () => ctx?.drawImage(label, imgSettings.left, imgSettings.top);
+

@@ -37,7 +37,7 @@ export default function Body() {
         setSettingsList(set => ([...set, {
           left: 0,
           top: 0,
-          color: 'FF0000',
+          color: '#FF0000',
           opacity: 1,
           skip: false,
           isSvg: f.name.split('.').pop()?.toLocaleLowerCase() === 'svg',
@@ -169,17 +169,17 @@ export default function Body() {
 
     console.warn(images)
 
-    const results = imageMerger(images);
+    imageMerger(images);
 
-    results.forEach((res, i) => {
-      const a = document.createElement('a');
-      a.href = res;
-      a.target = '_self';
-      a.download = `test_${i}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
+  //   results.forEach((res, i) => {
+  //     const a = document.createElement('a');
+  //     a.href = res;
+  //     a.target = '_self';
+  //     a.download = `test_${i}.png`;
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     document.body.removeChild(a);
+  //   });
   }
   
   return (
@@ -201,6 +201,8 @@ export default function Body() {
                 style={{
                   top: `${settingsList[i].top}px`,
                   left: `${settingsList[i].left}px`,
+                  fill: `${settingsList[i].color}`,
+                  color: `${settingsList[i].color}`,
                   opacity: settingsList[i].opacity
                 }}
                 className="label-img"
