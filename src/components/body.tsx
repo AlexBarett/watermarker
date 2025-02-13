@@ -164,6 +164,8 @@ export default function Body() {
         label: new XMLSerializer().serializeToString(label),
         left: settings.left,
         top: settings.top,
+        size: label.scrollWidth,
+        color: settings.color
       }
     });
 
