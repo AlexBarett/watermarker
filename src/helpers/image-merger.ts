@@ -1,3 +1,4 @@
+
 export interface ImageMerger {
   background: string;
   bgWidth: number;
@@ -11,31 +12,36 @@ export interface ImageMerger {
   color: string;
 }
 
-export function imageMerger(images: ImageMerger[]): string[] {
+export function imageMerger(images: ImageMerger[]) {
   
-  const results = images.map((imgSettings, i) => {
-    const canvas = document.createElement('canvas');
-
-    const ctx = canvas.getContext('2d');
-
+  images.map((imgSettings, i) => {
+    
     const img = new Image();
     img.src = imgSettings.background;
+    
+    console.warn(img.naturalWidth, img.naturalHeight)
+    const canvas = new OffscreenCanvas(img.naturalWidth, img.naturalHeight);
+    const ctx = canvas.getContext('2d')!;
 
-    canvas.width = img.width;
-    canvas.height = img.height;
 
     const scale = imgSettings.bgWidth / img.width;
-
+    console.warn(scale)
     ctx!.drawImage(img, 0, 0);
 
     ctx!.globalAlpha = imgSettings.opacity;
-
-    const label = new Image();
-    label.style.color = imgSettings.color;
-    label.onload = () => {
-      ctx?.drawImage(label, Math.trunc(imgSettings.left / scale), Math.trunc(imgSettings.top / scale), Math.trunc(imgSettings.size / scale), Math.trunc(imgSettings.size / scale));
+    console.warn(imgSettings.size / scale)
+    const label = new Image(Math.trunc(imgSettings.size / scale), Math.trunc(imgSettings.size / scale));
+    label.onload = async () => {
+      await ctx.drawImage(
+        label,
+        Math.trunc(imgSettings.left / scale),
+        Math.trunc(imgSettings.top / scale),
+        Math.trunc(imgSettings.size / scale),
+        Math.trunc(imgSettings.size / scale)
+      );
       const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/jpeg', 1.0);
+      const blob = await canvas.convertToBlob();
+      a.href = URL.createObjectURL(blob);
       a.target = '_self';
       a.download = `test_${i}.png`;
       document.body.appendChild(a);
@@ -45,11 +51,11 @@ export function imageMerger(images: ImageMerger[]): string[] {
 
     window.requestAnimationFrame(() => label.src = window.URL.createObjectURL(new Blob([imgSettings.label], { type: 'image/svg+xml' })));
     
-    return canvas.toDataURL('image/jpeg');
+    // return canvas.toDataURL('image/jpeg');
 
   });
 
-  return results;
+  // return results;
 }
 
 // label.src = window.URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(label)], { type: 'image/svg+xml' }));

@@ -150,21 +150,24 @@ export default function Body() {
   }
 
   const onSaveButton = () => {
-    const imagesHTML = document.querySelectorAll('.background-img')!;
-    const label = document.querySelector('.label-img svg')!;
+    const imagesHTML = document.querySelector('.active .background-img') as HTMLImageElement;
+    const label = document.querySelector('.label-img svg')! as SVGSVGElement;
+    // console.warn(label.he)
     const images: ImageMerger[] = photos.map((p, i) => {
       const settings = settingsList[i];
-      const imgTag = imagesHTML[i] as HTMLImageElement;
+      // const imgTag = imagesHTML[i] as HTMLImageElement;
 
       return {
         background: p.data as string,
-        bgHeight: imgTag.height,
-        bgWidth: imgTag.width,
+        // bgHeight: imgTag.height,
+        bgHeight: imagesHTML.height,
+        // bgWidth: imgTag.width,
+        bgWidth: imagesHTML.width,
         opacity: settings.opacity,
         label: new XMLSerializer().serializeToString(label),
         left: settings.left,
         top: settings.top,
-        size: label.scrollWidth,
+        size: label.height.baseVal.value,
         color: settings.color
       }
     });
