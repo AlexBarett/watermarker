@@ -10,9 +10,12 @@ function App() {
 
   return (
     <>
+    <div className="border rounded h-100 mb-4 d-flex flex-column overflow-hidden">
       <Header />
+      <div className="p-2 d-flex h-100 flex-column overflow-hidden">
       <Body />
-      <div></div>
+      </div>
+    </div>
     </>
   )
 }
