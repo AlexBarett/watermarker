@@ -6,6 +6,7 @@ import { LabelStats, Photo } from '../interfaces';
 
 export default function Body() {
   const [images, setImages] = useState<(Photo | undefined)[]>([]);
+  const [label, setLabel] = useState<string | undefined>(undefined);
   const [settingsList, setSettingsList] = useState<LabelStats[]>([]);
 
   const inputPhotos: React.ChangeEventHandler<HTMLInputElement> = (input) => {
@@ -13,13 +14,13 @@ export default function Body() {
     console.warn("inputPhotos", files)
 
     setImages(new Array(files.length).fill(undefined));
-    setSettingsList(new Array(files.length).map(() => ({
+    setSettingsList(new Array(files.length).fill(0).map(() => ({
       left: 0,
       top: 0,
       color: '#FF0000',
       opacity: 1,
       skip: false,
-      isSvg: false,
+      isSvg: true,
       shift: [-1, -1, -1, -1]
     })));
 
@@ -42,6 +43,22 @@ export default function Body() {
 
       fr.readAsDataURL(file);
     })
+  };
+
+  const inputLabel: React.ChangeEventHandler<HTMLInputElement> = (input) => {
+    if (input.target.files) {
+      const lbl = input.target.files[0];
+
+      if (lbl) {
+        const fr = new FileReader();
+
+        fr.onload = (e => {
+          setLabel(atob((e.target?.result as string || '').split(',')[1]));
+        })
+
+        fr.readAsDataURL(lbl);
+      }
+    }
   }
 
   // const isMobile = navigator.userAgent.toLocaleLowerCase().includes('ios') || navigator.userAgent.toLocaleLowerCase().includes('android');
@@ -258,13 +275,13 @@ export default function Body() {
     <>
       <div className="col-12 d-flex">
         <div className="col-6">
-          <InputForms inputPhotos={inputPhotos}></InputForms>
+          <InputForms inputPhotos={inputPhotos} inputLabel={inputLabel}></InputForms>
         </div>
         <div className="col-6">
           <Settings></Settings>
         </div>
       </div>
-      <CarouselContainer images={images} settingsList={settingsList}></CarouselContainer>
+      <CarouselContainer images={images} settingsList={settingsList} label={label!}></CarouselContainer>
     </>
   )
 }
