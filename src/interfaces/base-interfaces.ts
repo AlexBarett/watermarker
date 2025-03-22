@@ -1,8 +1,3 @@
-export interface Size {
-  width: number;
-  height: number;
-}
-
 export interface Appearance {
   // TODO: попробовать несколько цветов
   color: string;
@@ -10,9 +5,11 @@ export interface Appearance {
   rotate: number;
 }
 
-export enum LabelTypes {
-  Unknown,
-  Svg
+export interface Size {
+  dh: number;
+  dw: number;
+  dt: number;
+  dl: number;
 }
 
 export interface Photo {
@@ -20,12 +17,16 @@ export interface Photo {
   data: string | ArrayBuffer | null;
 }
 
-export interface LabelStats {
+export interface GeneralStats {
   left: number;
   top: number;
   opacity: number;
-  color: string;
-  skip: boolean;
-  isSvg?: boolean;
-  shift: number[];
+  isSvg: boolean;
+  labelHeight: number;
+  labelWidth: number
+  name: string;
+  bgWidth: number;
+  bgHeight: number;
+  ratio: number;
+  labelRatio: number;
 }

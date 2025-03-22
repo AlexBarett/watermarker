@@ -2,42 +2,74 @@ import { useState } from 'react';
 import Settings from './settings';
 import InputForms from './inputForms';
 import CarouselContainer from './carousel-container';
-import { LabelStats, Photo } from '../interfaces';
+import { GeneralStats, Size } from '../interfaces';
+import { imageMerger } from '../helpers';
+
+const BASE_SIZE = 1280;
 
 export default function Body() {
-  const [images, setImages] = useState<(Photo | undefined)[]>([]);
+  const [images, setImages] = useState<(string | null)[]>([]);
   const [label, setLabel] = useState<string | undefined>(undefined);
-  const [settingsList, setSettingsList] = useState<LabelStats[]>([]);
+  const [settingsList, setSettingsList] = useState<GeneralStats[]>([]);
+  const [current, setCurrent] = useState(0);
 
   const inputPhotos: React.ChangeEventHandler<HTMLInputElement> = (input) => {
     const files = Array.from(input.target.files || []);
-    console.warn("inputPhotos", files)
 
-    setImages(new Array(files.length).fill(undefined));
-    setSettingsList(new Array(files.length).fill(0).map(() => ({
-      left: 0,
-      top: 0,
-      color: '#FF0000',
-      opacity: 1,
-      skip: false,
+    if (!files.length) {
+      setSettingsList([]);
+      return;
+    }
+
+    setImages(new Array(files.length).fill(null));
+    setSettingsList(new Array(files.length).fill(0).map((_, i) => ({
+      left: 100,
+      top: 100,
+      opacity: 0.8,
       isSvg: true,
-      shift: [-1, -1, -1, -1]
+      labelHeight: 48,
+      labelWidth: 48,
+      bgHeight: 0,
+      bgWidth: 0,
+      ratio: 0,
+      labelRatio: 0,
+      name: (() => {
+        const nameParts = files[i].name.split('.');
+        nameParts.pop();
+        return nameParts.join('');
+      })()
     })));
 
     files.forEach((file, i) => {
       const fr = new FileReader();
 
       fr.onload = e => {
-        console.warn("ONLOAD", i)
         setImages((imgs) => {
           const newImgs = [...imgs];
 
-          newImgs[i] = {
-            data: (e.target?.result || null),
-            name: file.name
+          const image = new Image();
+          image.src = e.target?.result as string;
+          image.onload = () => {
+            if (image.naturalHeight > image.naturalWidth) {
+              const ratio = image.naturalHeight / image.naturalWidth;
+              updateSettings({
+                bgHeight: BASE_SIZE,
+                bgWidth: Math.round(BASE_SIZE / ratio),
+                ratio: ratio,
+              });
+            } else {
+              const ratio = image.naturalWidth / image.naturalHeight;
+              updateSettings({
+                bgHeight: Math.round(BASE_SIZE / ratio),
+                bgWidth: BASE_SIZE,
+                ratio: ratio,
+              });
+            }
           };
 
-          return newImgs
+          newImgs[i] = ((e.target?.result as string) || null);
+
+          return newImgs;
         });
       };
 
@@ -48,11 +80,18 @@ export default function Body() {
   const inputLabel: React.ChangeEventHandler<HTMLInputElement> = (input) => {
     if (input.target.files) {
       const lbl = input.target.files[0];
-
+      
       if (lbl) {
+        const isSvg =  input.target.files[0].name.split('.').pop() === 'svg';
         const fr = new FileReader();
 
         fr.onload = (e => {
+          const img = new Image();
+          img.src = e.target?.result as string;
+          img.onload = () => {
+            setSettingsList(l => l.map(l => ({ ...l, isSvg, labelRatio: img.naturalHeight / img.naturalWidth })));
+          };
+
           setLabel(atob((e.target?.result as string || '').split(',')[1]));
         })
 
@@ -61,227 +100,117 @@ export default function Body() {
     }
   }
 
-  // const isMobile = navigator.userAgent.toLocaleLowerCase().includes('ios') || navigator.userAgent.toLocaleLowerCase().includes('android');
+  const changeSizeSettings = (i: number) => (ch: Size) => {
+    setSettingsList(sl => {
+      const nsl = [...sl];
+      const skipT = (nsl[i].labelHeight + ch.dh) < 24;
+      const skipL = (nsl[i].labelWidth + ch.dw) < 24;
 
-  // const [photos, setPhotos] = useState<Photo[]>([]);
-  // const [settingsList, setSettingsList] = useState<LabelStats[]>([])
-  // // const [label, setLabel] = useState<string | ArrayBuffer | null>(null);
+      nsl[i] = {
+        ...nsl[i],
+        labelHeight: Math.max(nsl[i].labelHeight + ch.dh, 24),
+        labelWidth: Math.max(nsl[i].labelWidth + ch.dw, 24),
+        top: skipT ? nsl[i].top : Math.max(nsl[i].top + ch.dt, -(nsl[i].labelHeight * 0.25)),
+        left: skipL ? nsl[i].left : Math.max(nsl[i].left + ch.dl, -(nsl[i].labelWidth * 0.25)),
+      };
 
-  // const inputPhotos: React.ChangeEventHandler<HTMLInputElement> = (input) => {
-  //   Array.from(input.target.files || []).forEach(f => {
-  //     const fr = new FileReader();
+      return nsl;
+    });
+  }
 
-  //     fr.onload = e => {
-  //       setPhotos((ph) => [...ph, {
-  //         data: (e.target?.result || null),
-  //         name: f.name
-  //       }]);
-  //       setSettingsList(set => ([...set, {
-  //         left: 0,
-  //         top: 0,
-  //         color: '#FF0000',
-  //         opacity: 1,
-  //         skip: false,
-  //         isSvg: f.name.split('.').pop()?.toLocaleLowerCase() === 'svg',
-  //         shift: [-1, -1, -1, -1]
-  //       }]));
-  //     };
+  const updateSettings = (settings: Partial<GeneralStats>, forAll?: boolean) => {
+    setSettingsList(sl => {
+      const nsl = [...sl];
 
-  //     fr.readAsDataURL(f);
-  //   })
-  // }
+      if (forAll) {
+        return nsl.map((n, i) => ({
+          ...n,
+          ...settings,
+          name: settings.name ? `${settings.name}_${i + 1}` : n.name
+        }));
+      }
 
-  // const inputLabel: React.ChangeEventHandler<HTMLInputElement> = (input) => {
+      nsl[current] = {
+        ...nsl[current],
+        ...settings
+      };
 
-  //   if (input.target.files) {
-  //     const lbl = input.target.files[0];
+      return nsl;
+    });
+  }
 
-  //     if (lbl) {
-  //       const containers = document.querySelectorAll('.label-img');
+  const delImage = () => {
+    setImages(img => img.reduce((acc, el, i) => {
+      if (i === current) {
+        return acc;
+      }
+      acc.push(el);
+      return acc;
+    }, [] as (string | null)[]));
+    setSettingsList(l => l.reduce((acc, el, i) => {
+      if (i === current) {
+        return acc;
+      }
+      acc.push(el);
+      return acc;
+    }, [] as GeneralStats[]));
+  }
 
-  //       if (lbl.name.split('.').pop()?.toLocaleLowerCase() === 'svg') {
-  //         containers.forEach(async c => {
-  //           c.innerHTML = await input.target.files![0].text();
-  //         });
-  //       } else {
-  //         containers.forEach(async c => {
-  //           const img = new Image();
-  //           img.src = URL.createObjectURL(input.target.files![0]);
-  //           c.appendChild(img);
-  //         });
-  //       }
-  //     }
-  //   }
-  // }
+  const saveImages = (index?: number) => {
+    const i = index ?? -1;
+    const selectedImages = (i < 0) ? images : [images[i]]
+    const img = document.querySelector('.active.carousel-item .background-img') as HTMLImageElement;
+    const src = img.src;
+    imageMerger(selectedImages.map((image, i) => {
+      const settings = settingsList[i];
+      img.src = image!;
 
-  // const onDragLabelEnd = (i: number) => () => {
-  //   const backImg = document.querySelector('.active .background-img')! as HTMLImageElement;
-
-  //   backImg.onpointermove = null;
-    
-  //   document.onmouseup = null;
-  //   document.ontouchend = null;
-  //   document.ontouchcancel = null;
-
-  //   setSettingsList(set => {
-  //     const newSet = [...set];
-  //     newSet[i] = {
-  //       ...newSet[i],
-  //       shift: []
-  //     };
-  
-  //     return newSet;
-  //   });
-  // };
-
-  // const onDragLabelStart = (i: number) =>  () => {
-  //   const backImg = document.querySelector('.active .background-img')! as HTMLImageElement;
-
-  //   backImg.onpointermove = onMouseMove(i);
-    
-  //   document.onmouseup = onDragLabelEnd(i);
-  //   document.ontouchcancel = onDragLabelEnd(i);
-  //   document.ontouchend = onDragLabelEnd(i);
-  // };
-
-  // const onMouseMove = (i: number) => (moveEvent: TE<HTMLElement> | ME<HTMLElement> | TouchEvent | MouseEvent) => {
-  //   moveEvent.preventDefault();
-  //   moveEvent.stopPropagation();
-    
-  //   const label = document.querySelector('.active .label-img')! as HTMLElement;
-  //   const settings = { ...settingsList[i] };
-
-  //   if (!settings.shift.length) {
-  //     settings.shift.push(0, 0);
-  //     if (isMobile) {
-  //       const mobileEvent = moveEvent as TE<HTMLImageElement>;
-  
-  //       settings.shift.push(mobileEvent.targetTouches[0].clientX);
-  //       settings.shift.push(mobileEvent.targetTouches[0].clientY);
-  //     } else {
-  //       const webEvent = moveEvent as ME<HTMLImageElement>;
-  
-  //       settings.shift.push(webEvent.clientX);
-  //       settings.shift.push(webEvent.clientY);
-  //     }
-  //   }
-
-  //   if (isMobile) {
-  //     const mobileEvent = moveEvent as TouchEvent;
-
-  //     settings.shift[0] = settings.shift[3] - mobileEvent.targetTouches[0].clientX;
-  //     settings.shift[1] = settings.shift[4] - mobileEvent.targetTouches[0].clientY;
-  //     settings.shift[3] = mobileEvent.targetTouches[0].clientX;
-  //     settings.shift[4] = mobileEvent.targetTouches[0].clientY;
-  //   } else {
-  //     const webEvent = moveEvent as MouseEvent;
-
-  //     settings.shift[0] = settings.shift[3] - webEvent.clientX;
-  //     settings.shift[1] = settings.shift[4] - webEvent.clientY;
-  //     settings.shift[3] = webEvent.clientX;
-  //     settings.shift[4] = webEvent.clientY;
-
-  //   }
-
-  //   settings.left = label.offsetLeft - settings.shift[0];
-  //   settings.top = label.offsetTop - settings.shift[1];
-
-  //   setSettingsList(set => {
-  //     const newSet = [...set];
-  //     newSet[i] = settings;
-  
-  //     return newSet;
-  //   });
-  // }
-
-  // const onSaveButton = () => {
-  //   const imagesHTML = document.querySelector('.active .background-img') as HTMLImageElement;
-  //   const label = document.querySelector('.label-img svg')! as SVGSVGElement;
-  //   // console.warn(label.he)
-  //   const images: ImageMerger[] = photos.map((p, i) => {
-  //     const settings = settingsList[i];
-  //     // const imgTag = imagesHTML[i] as HTMLImageElement;
-
-  //     return {
-  //       background: p.data as string,
-  //       // bgHeight: imgTag.height,
-  //       bgHeight: imagesHTML.height,
-  //       // bgWidth: imgTag.width,
-  //       bgWidth: imagesHTML.width,
-  //       opacity: settings.opacity,
-  //       label: new XMLSerializer().serializeToString(label),
-  //       left: settings.left,
-  //       top: settings.top,
-  //       size: label.height.baseVal.value,
-  //       color: settings.color
-  //     }
-  //   });
-
-  //   console.warn(images)
-
-  //   imageMerger(images);
-
-  //   results.forEach((res, i) => {
-  //     const a = document.createElement('a');
-  //     a.href = res;
-  //     a.target = '_self';
-  //     a.download = `test_${i}.png`;
-  //     document.body.appendChild(a);
-  //     a.click();
-  //     document.body.removeChild(a);
-  //   });
-  // }
-  
-  // return (
-  //   <div className="main-body">
-  //     <Settings inputPhotos={inputPhotos} inputLabel={inputLabel} />
-  //     <Carousel
-  //       interval={null}
-  //       touch={false}
-  //     >
-  //       {photos.map((photo, i) => {
-  //         return <Carousel.Item key={photo.name}>
-  //           <div>
-  //             <img
-  //               className="background-img"
-  //               src={photo.data as string}
-  //             >
-  //             </img>
-  //             <div
-  //               style={{
-  //                 top: `${settingsList[i].top}px`,
-  //                 left: `${settingsList[i].left}px`,
-  //                 fill: `${settingsList[i].color}`,
-  //                 color: `${settingsList[i].color}`,
-  //                 opacity: settingsList[i].opacity
-  //               }}
-  //               className="label-img"
-  //               draggable={true}
-  //               onMouseDown={onDragLabelStart(i)}
-  //               onTouchMove={onMouseMove(i)}
-  //             ></div>
-  //           </div>
-  //         </Carousel.Item>
-  //       })}
-  //     </Carousel>
-  //     <Button
-  //       className="mt-2"
-  //       onClick={onSaveButton}
-  //     >Сохранить</Button>
-  //   </div>
-  // )
+      return {
+        background: image || '',
+        bgWidth: settings.bgWidth,
+        bgHeight: settings.bgHeight,
+      
+        label: label || '',
+        lWidth: settings.labelWidth,
+        lHeight: settings.labelHeight,
+      
+        opacity: settings.opacity,
+        top: settings.top,
+        left: settings.left,
+      
+        displayedWidth: img.width,
+        displayedHeight: img.height,
+        name: settings.name
+      };
+    }));
+    img.src = src;
+  }
 
   return (
     <>
-      <div className="col-12 d-flex">
-        <div className="col-6">
+      <div className="col-12 d-flex flex-wrap">
+        <div className="col-12 col-lg-6">
           <InputForms inputPhotos={inputPhotos} inputLabel={inputLabel}></InputForms>
         </div>
-        <div className="col-6">
-          <Settings></Settings>
+        <div className="col-12 col-lg-6">
+          <Settings
+            delImages={delImage}
+            current={current}
+            saveImages={saveImages} 
+            settings={settingsList[current]}
+            changeSettings={updateSettings}
+          >
+          </Settings>
         </div>
       </div>
-      <CarouselContainer images={images} settingsList={settingsList} label={label!}></CarouselContainer>
+      {settingsList[current]?.name}
+      <CarouselContainer
+        images={images}
+        settingsList={settingsList}
+        label={label!}
+        changeSettings={changeSizeSettings}
+        setCurrent={setCurrent}>
+        </CarouselContainer>
     </>
   )
 }
