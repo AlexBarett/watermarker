@@ -56,14 +56,14 @@ export default function Body() {
                 bgHeight: BASE_SIZE,
                 bgWidth: Math.round(BASE_SIZE / ratio),
                 ratio: ratio,
-              });
+              }, i);
             } else {
               const ratio = image.naturalWidth / image.naturalHeight;
               updateSettings({
                 bgHeight: Math.round(BASE_SIZE / ratio),
                 bgWidth: BASE_SIZE,
                 ratio: ratio,
-              });
+              }, i);
             }
           };
 
@@ -118,7 +118,7 @@ export default function Body() {
     });
   }
 
-  const updateSettings = (settings: Partial<GeneralStats>, forAll?: boolean) => {
+  const updateSettings = (settings: Partial<GeneralStats>, index?: number, forAll?: boolean) => {
     setSettingsList(sl => {
       const nsl = [...sl];
 
@@ -130,8 +130,8 @@ export default function Body() {
         }));
       }
 
-      nsl[current] = {
-        ...nsl[current],
+      nsl[index ?? current] = {
+        ...nsl[index ?? current],
         ...settings
       };
 

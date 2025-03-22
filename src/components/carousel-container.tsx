@@ -11,7 +11,7 @@ export default function CarouselContainer(props: {
   setCurrent: (i: number) => void;
   changeSettings: (index: number) => (ch: Size) => void
 }) {
-
+  console.warn(props.settingsList)
   const changeSizes = (change: (ch: Size) => void) => (ch: Size) => change(ch);
 
   return (

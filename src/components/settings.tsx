@@ -6,7 +6,7 @@ export interface SettingsProps {
   current: number;
   saveImages: (index?: number) => void;
   delImages: () => void;
-  changeSettings: (settings: Partial<GeneralStats>, forAll?: boolean) => void;
+  changeSettings: (settings: Partial<GeneralStats>, index?: number, forAll?: boolean) => void;
   settings?: GeneralStats;
 }
 
@@ -40,7 +40,7 @@ export default function Settings(props: SettingsProps) {
       changes.bgHeight = bgSize[1];
     }
 
-    props.changeSettings(changes, forAll);
+    props.changeSettings(changes, undefined, forAll);
   };
 
   const setSize = (w?: number, h?: number) => {
@@ -88,14 +88,7 @@ export default function Settings(props: SettingsProps) {
       </Button>
       </div>
       <div className="m-2 d-flex justify-content-between">
-          <Button
-            disabled={!props.settings}
-            variant="outline-danger"
-            onClick={() => props.delImages()}
-          >
-            Удалить
-          </Button>
-        <Button
+      <Button
           disabled={!props.settings}
           variant="outline-primary"
           onClick={() => props.saveImages(props.current)}
@@ -106,6 +99,13 @@ export default function Settings(props: SettingsProps) {
           disabled={!props.settings}
           variant="outline-primary"
           onClick={() => props.saveImages()}>Сохранить все
+        </Button>
+        <Button
+          disabled={!props.settings}
+          variant="outline-danger"
+          onClick={() => props.delImages()}
+        >
+          Удалить
         </Button>
       </div>
 
